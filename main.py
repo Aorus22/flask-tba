@@ -2,6 +2,8 @@ from bs4 import BeautifulSoup
 from graphviz import Digraph
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from visual_automata.fa.dfa import VisualDFA
+from visual_automata.fa.nfa import VisualNFA
 
 app = Flask(__name__)
 CORS(app)
@@ -24,6 +26,18 @@ class DFA:
             if current_state is None:
                 return False
         return current_state in self.final_states
+
+    def show_diagram(self, input_string):
+        strings = f'{input_string}'
+        dfa = VisualDFA(self)
+        svg_string = dfa.show_diagram(strings).pipe(format='svg').decode('utf-8')
+        soup = BeautifulSoup(svg_string, 'html.parser')
+        for tag in soup.find_all():
+            tag.attrs = {key.split(':')[-1]: value for key, value in tag.attrs.items()}
+            tag.name = tag.name.split(':')[-1]
+        cleaned_svg = str(soup)
+        print(cleaned_svg)
+        return cleaned_svg
 
 
 class NFA:
@@ -53,7 +67,37 @@ class NFA:
             if not current_states:
                 return False
 
+
         return any(state in self.final_states for state in current_states)
+    def show_diagram(self, input_string):
+        strings = f'{input_string}'
+
+        nfa = VisualNFA(
+            states={"q0", "q1", "q2"},
+            input_symbols={"0", "1"},
+            transitions={
+                "q0": {"": {"q2"}, "1": {"q1"}},
+                "q1": {"1": {"q2"}, "0": {"q0", "q2"}},
+                "q2": {},
+            },
+            initial_state="q0",
+            final_states={"q0"},
+        )
+
+
+        # Use the correct keys from data_test
+        # nfa = VisualNFA(states=data_test["states"], input_symbols=data_test["alphabet"], transitions=data_test["transitions"], initial_state=data_test["start_state"], final_states=data_test["accepting_states"])
+        nfa.show_diagram()
+        # svg_string = nfa.show_diagram("1111").pipe(format='svg').decode('utf-8')
+        # soup = BeautifulSoup(svg_string, 'html.parser')
+        # for tag in soup.find_all():
+        #     tag.attrs = {key.split(':')[-1]: value for key, value in tag.attrs.items()}
+        #     tag.name = tag.name.split(':')[-1]
+        # print(svg_string)
+        cleaned_svg = "str(soup)"
+        print(cleaned_svg)
+        return cleaned_svg
+
 
 
 class ENFA:
@@ -92,6 +136,18 @@ class ENFA:
             current_states = next_states
         return any(state in self.final_states for state in current_states)
 
+    def show_diagram(self, input_string):
+        strings = f'{input_string}'
+        dfa = VisualNFA(self)
+        svg_string = dfa.show_diagram(strings).pipe(format='svg').decode('utf-8')
+        soup = BeautifulSoup(svg_string, 'html.parser')
+        for tag in soup.find_all():
+            tag.attrs = {key.split(':')[-1]: value for key, value in tag.attrs.items()}
+            tag.name = tag.name.split(':')[-1]
+        cleaned_svg = str(soup)
+        print(cleaned_svg)
+        return cleaned_svg
+
 
 def create_automata(data):
     type_automata = data['type']
@@ -107,6 +163,7 @@ def create_automata(data):
         for from_state, transition in transitions.items():
             dfa_transitions[from_state] = {}
             for symbol, next_states in transition.items():
+                next_states = next_states[0]
                 dfa_transitions[from_state][symbol] = next_states
         automata = DFA(states=states,
                        input_symbols=input_symbols,
@@ -122,7 +179,8 @@ def create_automata(data):
             for symbol, next_states in transition.items():
                 if isinstance(next_states, str):
                     next_states = {next_states}
-                nfa_transitions[from_state][symbol] = set(next_states)
+                if next_states:
+                    nfa_transitions[from_state][symbol] = set(next_states)
 
         automata = NFA(states=states,
                        input_symbols=input_symbols,
@@ -176,6 +234,22 @@ def make_svg(automata):
     return cleaned_svg
 
 
+@app.route("/testing")
+def testing():
+    nfa = VisualNFA(
+        states={"q0", "q1", "q2"},
+        input_symbols={"0", "1"},
+        transitions={
+            "q0": {"": {"q2"}, "1": {"q1"}},
+            "q1": {"1": {"q2"}, "0": {"q0", "q2"}},
+            "q2": {},
+        },
+        initial_state="q0",
+        final_states={"q0"},
+    )
+    nfa.show_diagram()
+
+
 @app.route('/test_NFA')
 def test_NFA():
     data_test = {
@@ -196,6 +270,7 @@ def test_NFA():
     strings = data_test["strings"]
     result = automata.accepts_input(strings)
     svg_result = make_svg(automata)
+    # svg_result = automata.show_diagram(input_string="1111")
     return jsonify({'svgResult': svg_result, 'result': f'{result}'})
 
 @app.route('/test_ENFA')
@@ -218,6 +293,7 @@ def test_ENFA():
     strings = data_test["strings"]
     result = automata.accepts_input(strings)
     svg_result = make_svg(automata)
+    automata.show_diagram(input_string="1111")
     return jsonify({'svgResult': svg_result, 'result': f'{result}'})
 
 @app.route('/test_DFA')
@@ -227,8 +303,8 @@ def test_DFA():
         "states": ["q0", "q1"],
         "alphabet": ["0", "1"],
         "transitions": {
-            "q0": {"0": "q0", "1": "q1"},
-            "q1": {"0": "q0", "1": "q1"}
+            "q0": {"0": ["q0"], "1": ["q1"]},
+            "q1": {"0": ["q0"], "1": ["q1"]}
         },
         "start_state": "q0",
         "accepting_states": ["q1"],
@@ -239,17 +315,27 @@ def test_DFA():
     strings = data_test["strings"]
     result = automata.accepts_input(strings)
     svg_result = make_svg(automata)
+    automata.show_diagram(input_string="1111")
     return jsonify({'svgResult': svg_result, 'result': f'{result}'})
 
 
 @app.route('/nomor_5', methods=['POST'])
-def test_input():
+def nomor_5():
     data = request.json
     automata = create_automata(data)
     strings = data['strings']
     result = automata.accepts_input(strings)
+    # svg_result = automata.show_diagram(input_string="1111")
     svg_result = make_svg(automata)
     return jsonify({'svgResult': svg_result, 'result': f'{result}'})
+
+
+@app.route('/draw_diagram', methods=['POST'])
+def draw_diagram():
+    data = request.json
+    automata = create_automata(data)
+    svg_result = make_svg(automata)
+    return jsonify({'svgResult': svg_result})
 
 
 if __name__ == '__main__':
