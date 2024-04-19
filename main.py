@@ -1,5 +1,3 @@
-from visual_automata.fa.nfa import VisualNFA
-
 from nomor_1 import nomor_1_run
 from nomor_2 import nomor_2_run
 from nomor_3 import nomor_3_run
@@ -12,6 +10,23 @@ app = Flask(__name__)
 CORS(app)
 
 
+@app.route('/nomor_1', methods=['POST'])
+def nomor_1():
+    data = request.json
+
+    svg1, svg2 = nomor_1_run(data)
+
+    return jsonify({'result1': f'{svg1}', 'result2': f'{svg2}'})
+
+
+@app.route('/draw_diagram', methods=['POST'])
+def draw_diagram():
+    data = request.json
+    automata = create_automata(data)
+    svg_result = make_svg(automata)
+    return jsonify({'svgResult': svg_result})
+
+
 @app.route('/nomor_2', methods=['POST'])
 def nomor_2():
     data = request.json
@@ -19,6 +34,33 @@ def nomor_2():
     svg_result = nomor_2_run(input_regex)
 
     return jsonify({'svgResult': svg_result})
+
+
+@app.route('/nomor_3', methods=['POST'])
+def nomor_3():
+    data = request.json
+    strings = data['strings']
+    svg_result = nomor_3_run(data)
+    result1 = create_automata(data).accepts_input(strings)
+    result2 = False
+
+    return jsonify({'svgResult': f'{svg_result}', 'result1': f'{result1}', 'result2': f'{result2}'})
+
+
+@app.route('/nomor_4', methods=['POST'])
+def nomor_4():
+    data = request.json
+
+    dfa1 = data["dfa1"]
+    dfa2 = data["dfa2"]
+
+    print(dfa1)
+    print(dfa2)
+
+    result = nomor_4_run(dfa1, dfa2)
+
+    return jsonify({'result': f'{result}'})
+
 
 @app.route('/nomor_5', methods=['POST'])
 def nomor_5():
@@ -29,19 +71,6 @@ def nomor_5():
     # svg_result = automata.show_diagram(input_string="1111")
     svg_result = make_svg(automata)
     return jsonify({'svgResult': svg_result, 'result': f'{result}'})
-
-
-@app.route('/nomor_4', methods=['POST'])
-def nomor_4():
-    data = request.json
-
-    dfa1 = data["dfa1"]
-    dfa2 = data["dfa2"]
-
-    # print(dfa1)
-    result = nomor_4_run(dfa1, dfa2)
-
-    return jsonify({'result': f'{result}'})
 
 
 @app.route('/test_nomor_4')
@@ -80,30 +109,6 @@ def test_nomor_4():
     return jsonify({'result': f'{result}'})
 
 
-@app.route('/draw_diagram', methods=['POST'])
-def draw_diagram():
-    data = request.json
-    automata = create_automata(data)
-    svg_result = make_svg(automata)
-    return jsonify({'svgResult': svg_result})
-
-
-@app.route("/testing")
-def testing():
-    nfa = VisualNFA(
-        states={"q0", "q1", "q2"},
-        input_symbols={"0", "1"},
-        transitions={
-            "q0": {"": {"q2"}, "1": {"q1"}},
-            "q1": {"1": {"q2"}, "0": {"q0", "q2"}},
-            "q2": {},
-        },
-        initial_state="q0",
-        final_states={"q0"},
-    )
-    nfa.show_diagram()
-
-
 @app.route('/test_NFA')
 def test_NFA():
     data_test = {
@@ -127,6 +132,7 @@ def test_NFA():
     # svg_result = automata.show_diagram(input_string="1111")
     return jsonify({'svgResult': svg_result, 'result': f'{result}'})
 
+
 @app.route('/test_ENFA')
 def test_ENFA():
     data_test = {
@@ -147,8 +153,8 @@ def test_ENFA():
     strings = data_test["strings"]
     result = automata.accepts_input(strings)
     svg_result = make_svg(automata)
-    automata.show_diagram(input_string="1111")
     return jsonify({'svgResult': svg_result, 'result': f'{result}'})
+
 
 @app.route('/test_DFA')
 def test_DFA():
@@ -173,34 +179,16 @@ def test_DFA():
     return jsonify({'svgResult': svg_result, 'result': f'{result}'})
 
 
-@app.route('/nomor_1', methods=['POST'])
-def nomor_1():
-    data = request.json
-
-    svg1, svg2 = nomor_1_run(data)
-
-    return jsonify({'result1': f'{svg1}', 'result2': f'{svg2}'})
-
 @app.route('/test_nomor_1')
 def test_nomor_1():
-
-    svg1, svg2 = nomor_1_run()
+    svg1, svg2 = "nomor_1_run()", ""
 
     return jsonify({'result1': f'{svg1}', 'result2': f'{svg2}'})
-
-
-@app.route('/nomor_3', methods=['POST'])
-def nomor_3():
-
-    svgResult = nomor_3_run()
-
-    return jsonify({'svgResult': f'{svgResult}'})
 
 
 @app.route('/test_nomor_3')
 def test_nomor_3():
-
-    minimized_dfa = nomor_3_run()
+    minimized_dfa = "nomor_3_run()"
     svg_result = make_svg(minimized_dfa)
 
     return jsonify({'result1': f'{svg_result}'})

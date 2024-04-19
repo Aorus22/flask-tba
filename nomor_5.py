@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from graphviz import Digraph
-from visual_automata.fa.dfa import VisualDFA
-from visual_automata.fa.nfa import VisualNFA
+import copy
+
 
 class DFA:
     def __init__(self, states, input_symbols, transitions, initial_state, final_states):
@@ -22,18 +22,8 @@ class DFA:
                 return False
         return current_state in self.final_states
 
-    def show_diagram(self, input_string):
-        strings = f'{input_string}'
-        dfa = VisualDFA(self)
-        svg_string = dfa.show_diagram(strings).pipe(format='svg').decode('utf-8')
-        soup = BeautifulSoup(svg_string, 'html.parser')
-        for tag in soup.find_all():
-          tag.attrs = {key.split(':')[-1]: value for key, value in tag.attrs.items()}
-          tag.name = tag.name.split(':')[-1]
-          cleaned_svg = str(soup)
-          print(cleaned_svg)
-          return cleaned_svg
-
+    def copy(self):
+        return copy.deepcopy(self)
 
 
 class NFA:
@@ -65,35 +55,6 @@ class NFA:
                 return False
 
         return any(state in self.final_states for state in current_states)
-    def show_diagram(self, input_string):
-        strings = f'{input_string}'
-
-        nfa = VisualNFA(
-            states={"q0", "q1", "q2"},
-            input_symbols={"0", "1"},
-            transitions={
-                "q0": {"": {"q2"}, "1": {"q1"}},
-                "q1": {"1": {"q2"}, "0": {"q0", "q2"}},
-                "q2": {},
-            },
-            initial_state="q0",
-            final_states={"q0"},
-        )
-
-
-        # Use the correct keys from data_test
-        # nfa = VisualNFA(states=data_test["states"], input_symbols=data_test["alphabet"], transitions=data_test["transitions"], initial_state=data_test["start_state"], final_states=data_test["accepting_states"])
-        nfa.show_diagram()
-        # svg_string = nfa.show_diagram("1111").pipe(format='svg').decode('utf-8')
-        # soup = BeautifulSoup(svg_string, 'html.parser')
-        # for tag in soup.find_all():
-        #     tag.attrs = {key.split(':')[-1]: value for key, value in tag.attrs.items()}
-        #     tag.name = tag.name.split(':')[-1]
-        # print(svg_string)
-        cleaned_svg = "str(soup)"
-        print(cleaned_svg)
-        return cleaned_svg
-
 
 
 class ENFA:
@@ -144,18 +105,6 @@ class ENFA:
         #     next_states = self.transition_with_epsilon(current_states, symbol)
         #     current_states = next_states
         return any(state in self.final_states for state in current_states)
-
-    def show_diagram(self, input_string):
-        strings = f'{input_string}'
-        dfa = VisualNFA(self)
-        svg_string = dfa.show_diagram(strings).pipe(format='svg').decode('utf-8')
-        soup = BeautifulSoup(svg_string, 'html.parser')
-        for tag in soup.find_all():
-            tag.attrs = {key.split(':')[-1]: value for key, value in tag.attrs.items()}
-            tag.name = tag.name.split(':')[-1]
-        cleaned_svg = str(soup)
-        print(cleaned_svg)
-        return cleaned_svg
 
 
 def create_automata(data):
@@ -234,6 +183,11 @@ def make_svg(automata):
                 for to_state in to_states:
                     graph.edge(from_state, to_state, label=symbol)
 
+    if automata.initial_state:
+        graph.attr('node', shape='none')
+        graph.node('')
+        graph.edge('', automata.initial_state)
+
     svg_data = graph.pipe(format='svg').decode("utf-8")
     soup = BeautifulSoup(svg_data, 'html.parser')
     for tag in soup.find_all():
@@ -241,6 +195,3 @@ def make_svg(automata):
         tag.name = tag.name.split(':')[-1]
     cleaned_svg = str(soup)
     return cleaned_svg
-
-
-

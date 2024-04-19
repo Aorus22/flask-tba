@@ -1,5 +1,0 @@
-beautifulsoup4
-automata-lib
-flask
-flask-cors
-graphviz
