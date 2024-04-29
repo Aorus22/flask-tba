@@ -190,6 +190,7 @@ def visualizeTransitionGraph(finite_automata):
 
     symbol_table = {}
     state_count = 0
+    final_state = None
 
     def addState(state):
         nonlocal state_count
@@ -213,10 +214,19 @@ def visualizeTransitionGraph(finite_automata):
                 addTransition(state, next_state, symbol)
                 exploreState(next_state)
 
-    start_state, _ = finite_automata
+    start_state, end_state = finite_automata
     explored_states = set()
     addState(start_state)
     exploreState(start_state)
+
+    for state, symbol in symbol_table.items():
+        if state == end_state:
+            final_state = symbol
+
+    dot.node(final_state, shape='doublecircle')
+
+    dot.node('', shape='none')
+    dot.edge('', symbol_table[start_state], label="start")
 
     return dot
 

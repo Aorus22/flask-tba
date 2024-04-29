@@ -188,7 +188,7 @@ def make_svg(automata):
     if automata.initial_state:
         graph.attr('node', shape='none')
         graph.node('')
-        graph.edge('', automata.initial_state)
+        graph.edge('', automata.initial_state, label="start")
 
     svg_data = graph.pipe(format='svg').decode("utf-8")
     soup = BeautifulSoup(svg_data, 'html.parser')
