@@ -121,8 +121,9 @@ def create_automata(data):
         for from_state, transition in transitions.items():
             dfa_transitions[from_state] = {}
             for symbol, next_states in transition.items():
-                next_states = next_states[0]
-                dfa_transitions[from_state][symbol] = next_states
+                if next_states:
+                    next_state = next_states[0]
+                    dfa_transitions[from_state][symbol] = next_state
         automata = DFA(states=states,
                        input_symbols=input_symbols,
                        transitions=dfa_transitions,
@@ -154,13 +155,14 @@ def create_automata(data):
             for symbol, next_states in transition.items():
                 if isinstance(next_states, str):
                     next_states = {next_states}
-                nfa_transitions[from_state][symbol] = set(next_states)
+                if next_states:
+                    nfa_transitions[from_state][symbol] = set(next_states)
 
         automata = ENFA(states=states,
-                        input_symbols=input_symbols,
-                        transitions=nfa_transitions,
-                        initial_state=initial_state,
-                        final_states=final_states)
+                       input_symbols=input_symbols,
+                       transitions=nfa_transitions,
+                       initial_state=initial_state,
+                       final_states=final_states)
         return automata
 
 

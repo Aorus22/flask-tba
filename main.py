@@ -83,8 +83,8 @@ def test_nomor_4():
         "states": ["q0", "q1"],
         "alphabet": ["0", "1"],
         "transitions": {
-            "q0": {"0": ["q0"], "1": ["q1"]},
-            "q1": {"0": ["q0"], "1": ["q1"]}
+            "q0": {"0": ["q1"], "1": ["q0"]},
+            "q1": {"0": ["q1"], "1": ["q0"]}
         },
         "start_state": "q0",
         "accepting_states": ["q1"],
