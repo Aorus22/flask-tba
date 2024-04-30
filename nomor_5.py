@@ -140,13 +140,16 @@ class ENFA:
                 if symbol in self.input_symbols:
                     index += length
                     next_states = set()
-                    for _ in current_states:
-                        next_states.update(self.transition_with_epsilon(current_states, symbol))
-                        current_states = next_states
-                        break
-        # for symbol in input_string:
-        #     next_states = self.transition_with_epsilon(current_states, symbol)
-        #     current_states = next_states
+                    for state in current_states:
+                        next_states.update(self.transition_with_epsilon({state}, symbol))
+                    current_states = next_states
+
+                    current_states_with_epsilon = set()
+                    for state in current_states:
+                        current_states_with_epsilon.update(self.epsilon_closure({state}))
+                    current_states = current_states_with_epsilon
+
+                    break
         return any(state in self.final_states for state in current_states)
 
 

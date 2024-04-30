@@ -46,21 +46,6 @@ def constructTree(regexp):
 
     return stack[0]
 
-# Fungsi untuk melakukan traversal inorder pada pohon ekspresi
-def inorder(et):
-    if et._type == Type.SYMBOL:
-        print(et.value)
-    elif et._type == Type.CONCAT:
-        inorder(et.left)
-        print(".")
-        inorder(et.right)
-    elif et._type == Type.UNION:
-        inorder(et.left)
-        print("+")
-        inorder(et.right)
-    elif et._type == Type.KLEENE:
-        inorder(et.left)
-        print("*")
 
 # Fungsi untuk menentukan precedensi operator
 def higherPrecedence(a, b):
@@ -165,26 +150,7 @@ def evalRegexKleene(et):
 
     return start_state, end_state
 
-# Fungsi untuk mencetak transisi keadaan otomata terbatas
-def printStateTransitions(state, states_done, symbol_table):
-    if state in states_done:
-        return
 
-    states_done.append(state)
-
-    for symbol in list(state.next_state):
-        line_output = "q" + str(symbol_table[state]) + "\t\t" + symbol + "\t\t\t"
-        for ns in state.next_state[symbol]:
-            if ns not in symbol_table:
-                symbol_table[ns] = 1 + sorted(symbol_table.values())[-1]
-            line_output = line_output + "q" + str(symbol_table[ns]) + " "
-
-        print(line_output)
-
-        for ns in state.next_state[symbol]:
-            printStateTransitions(ns, states_done, symbol_table)
-
-# Fungsi untuk visualisasi diagram transisi otomata terbatas
 def visualizeTransitionGraph(finite_automata):
     dot = graphviz.Digraph(comment='Finite Automata Transition Diagram')
 
