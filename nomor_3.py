@@ -1,6 +1,15 @@
-from automata.fa.dfa import DFA
-from nomor_5 import create_automata
-from nomor_5 import make_svg
+from nomor_5 import DFA, make_svg
+
+def remove_unreachable_states(automaton, start, visited=None):
+    if visited is None:
+        visited = set()
+    visited.add(start)
+    
+    for neighbor in automaton.transitions[start]:
+        if automaton.transitions[start][neighbor] not in visited:
+            remove_unreachable_states(automaton, automaton.transitions[start][neighbor], visited)
+    
+    return list(sorted(visited))
 
 def minimize_dfa(dfa):
     def get_next_state(current_state, symbol, transitions):
@@ -8,134 +17,123 @@ def minimize_dfa(dfa):
 
     def are_states_equivalent(state1, state2):
         return equivalence_classes[state1][state2]
-    # Step 1: Inisialisasi DFA Awal
-    minimal_dfa = dfa.copy()
+
+    # 1. remove unreachable states
+    reachable_states = remove_unreachable_states(dfa, dfa.initial_state)
     
-    # Initialize equivalence table (abe)
+    # 2. mark accepting states ≠ non accepting states,
+    # disini diibaratkan semua state equivalent terlebih dahulu
     equivalence_classes = {}
-    for state1 in dfa.states:
+    for state1 in reachable_states:
         equivalence_classes[state1] = {}
-        for state2 in dfa.states:
+        for state2 in reachable_states:
             equivalence_classes[state1][state2] = (state1 in dfa.final_states) == (state2 in dfa.final_states)
-
     
-    # Check for unreachable states and mark them as non-equivalent (abe)
-    for state1 in dfa.states:
-        for state2 in dfa.states:
-            for symbol in dfa.input_symbols:
-                next_state1 = get_next_state(state1, symbol, dfa.transitions)
-                next_state2 = get_next_state(state2, symbol, dfa.transitions)
-                if (next_state1 is None and next_state2 is not None) or (next_state1 is not None and next_state2 is None):
-                    equivalence_classes[state1][state2] = False
+    print("table filing accepting states ≠ non accepting states : ")
+    for state1 in sorted(reachable_states):
+        print(state1, end=" ")
+        for state2 in sorted(reachable_states):
+            print(str(equivalence_classes[state1][state2]), end=" ")
+            if (state1 == state2): break
+        print("\n")
+    for state in sorted(reachable_states): print(" st " + state, end=" ")
+    print("")
 
-    # Iteratively refine equivalence table (abe)
+    # cek jika terdapat dua final states
+    # if (len(dfa.final_states) > 1):
+    #     for final_state1 in dfa.final_states:
+    #         for final_state2 in dfa.final_states:
+
+    # Iteratively refine equivalence table
+    # table filling algorithm
     while True:
         changed = False
-        for state1 in dfa.states:
-            for state2 in dfa.states:
+        for state1 in reachable_states:
+            for state2 in reachable_states:
+                # jika tidak ekuivalent pada table awal (false),
+                # karena nilai false sudah diisikan dari accepting state ≠ non accepting state
                 if not equivalence_classes[state1][state2]:
                     continue
                 for symbol in dfa.input_symbols:
                     next_state1 = get_next_state(state1, symbol, dfa.transitions)
                     next_state2 = get_next_state(state2, symbol, dfa.transitions)
+                    # next tidak equivalent = salah satu next state adalah final state
+                    # maka kedua state tidak equivalent
                     if not are_states_equivalent(next_state1, next_state2):
                         equivalence_classes[state1][state2] = False
                         changed = True
                         break
+                    # jika sama sama menuju non accepting state
+                    elif (set(next_state1) not in dfa.final_states & set(next_state2) not in dfa.final_states):
+                        for symbol1 in dfa.input_symbols:
+                            next_state1_1 = get_next_state(state1, symbol1, dfa.transitions)
+                            next_state2_1 = get_next_state(state2, symbol1, dfa.transitions)
+                            for symbol2 in dfa.input_symbols:
+                                next_state1_2 = get_next_state(next_state1_1, symbol2, dfa.transitions)
+                                next_state2_2 = get_next_state(next_state2_1, symbol2, dfa.transitions)
+                                # next tidak equivalent = salah satu next state adalah final state
+                                # maka kedua state tidak equivalent
+                                if not are_states_equivalent(next_state1_2, next_state2_2):
+                                    equivalence_classes[state1][state2] = False
+                                    changed = True
+                                    break
+
             if changed:
                 break
         if not changed:
             break
 
-    # Step 4: Konstruksi DFA Minimal
+    print("table filling result : ")
+    for state1 in sorted(reachable_states):
+        print(state1, end=" ")
+        for state2 in sorted(reachable_states):
+            print(str(equivalence_classes[state1][state2]), end=" ")
+            if (state1 == state2): break
+        print("\n")
+    for state in sorted(reachable_states): print(" st " + state, end=" ")
+    print("")
+
+    # 3. equivalence group
     equivalence_group = {}
-    group_counter = 0
-    for state1 in minimal_dfa.states:
-        if state1 not in equivalence_group:
-            group_counter += 1
-            equivalence_group[state1] = group_counter
-        for state2 in minimal_dfa.states:
+    for state1 in reachable_states:
+        if state1 not in equivalence_group.keys():
+            equivalence_group[state1] = state1
+        for state2 in reachable_states:
             if state1 != state2 and equivalence_classes[state1][state2]:
                 equivalence_group[state2] = equivalence_group[state1]
+    print ("equivalence group: ", end="")
+    print(equivalence_group)
 
-    # Update DFA dengan state baru
-    new_states = {}
-    for state in minimal_dfa.states:
-        new_states[state] = "q" + str(equivalence_group[state])
+    new_states = set()
+    new_final_states = set()
+    new_transitions = {}
 
-    very_new_states = set()
-    new_final_state = set()
-    new_transition = set()
-    for state in minimal_dfa.states:
-        very_new_states.add(new_states[state])
-        # new_dfa.add_state(new_states[state])
-        if state in minimal_dfa.final_states:
-            new_final_state.add(new_states[state])
-            # new_dfa.add_final_state(new_states[state])
+    for state in reachable_states:
+        new_states.add(equivalence_group[state])
+        if state in dfa.final_states:
+            new_final_states.add(equivalence_group[state])
+    print("new_states", end="")
+    print(new_states)
 
-    # new_dfa.add_start_state(new_states[minimal_dfa.start_state])
-
-    for state in minimal_dfa.states:
-        for symbol in minimal_dfa.input_symbols:
-            next_state = minimal_dfa.transitions[state][symbol]
-            # next_state = minimal_dfa(state, symbol)
-            if next_state:
-                next_state_new = new_states[next_state]
-                transition = (new_states[state], symbol, next_state_new)
-                new_transition.add(transition)
-                # new_dfa.add_transition(new_states[state], symbol, next_states[0])
-
-    converted_transitions = {}
-
-    for transition in new_transition:
-        start_state, symbol, next_state = transition
-        if start_state not in converted_transitions:
-            converted_transitions[start_state] = {}
-        converted_transitions[start_state][symbol] = next_state
+    for state in reachable_states:
+        for symbol in dfa.input_symbols:
+            next_state = dfa.transitions[state][symbol]
+            if equivalence_group[state] not in new_transitions:
+                new_transitions[equivalence_group[state]] = {}
+            next_state_new = equivalence_group[next_state]
+            new_transitions[equivalence_group[state]][symbol] = next_state_new
     
     new_dfa = DFA(
-        states=very_new_states,         # Set keadaan kosong
-        input_symbols=minimal_dfa.input_symbols,  # Set simbol input kosong
-        transitions=converted_transitions,   # Kamus transisi kosong
-        initial_state=str(new_states[minimal_dfa.initial_state]),   # Keadaan awal tidak ditentukan
-        final_states=new_final_state    # Set keadaan akhir kosong
+        states=new_states,
+        input_symbols=dfa.input_symbols,
+        transitions=new_transitions,
+        initial_state=str(equivalence_group[dfa.initial_state]),
+        final_states=new_final_states
     )
 
     return new_dfa
 
-# main function
 def nomor_3_run(input_dfa):
-    dfa = create_automata(input_dfa)
-    minimized_dfa = minimize_dfa(dfa)
-    svgResult = make_svg(minimized_dfa)
-    return svgResult
-
-# contoh soal
-# dfa = DFA(
-#     states = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'],
-#     input_symbols = ['0', '1'],
-#     transitions = {'q1' : {'0' : ['q2'], '1' : ['q3']},
-#                     'q2' : {'0' : ['q1'], '1' : ['q4']},
-#                     'q3' : {'0' : ['q3'], '1' : ['q4']},
-#                     'q4' : {'0' : ['q2'], '1' : ['q3']},
-#                     'q5' : {'0' : ['q5'], '1' : ['q3']},
-#                     'q6' : {'0' : ['q5'], '1' : ['q3']}
-#                     },
-#     initial_state = 'q1',
-#     final_states = ['q3', 'q4']
-# )
-
-input_dfa = {
-    "type": "DFA",
-    "states": ["q0", "q1"],
-    "alphabet": ["0", "1"],
-    "transitions": {
-        "q0": {"0": ["q0"], "1": ["q1"]},
-        "q1": {"0": ["q0"], "1": ["q1"]}
-    },
-    "start_state": "q0",
-    "accepting_states": ["q1"],
-    "strings": "000101"
-}
-
-nomor_3_run(input_dfa)
+    initial_dfa = input_dfa
+    minimized_dfa = minimize_dfa(initial_dfa)
+    return minimized_dfa

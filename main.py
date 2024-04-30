@@ -2,7 +2,7 @@ from nomor_1 import nomor_1_run
 from nomor_2 import nomor_2_run
 from nomor_3 import nomor_3_run
 from nomor_4 import nomor_4_run
-from nomor_5 import create_automata, make_svg
+from nomor_5 import create_automata, make_svg, draw_path, DFA
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import re
@@ -39,10 +39,16 @@ def nomor_2():
 def nomor_3():
     data = request.json
     strings = data['strings']
-    svg_result = nomor_3_run(data)
-    result1 = create_automata(data).accepts_input(strings)
-    result2 = False
-    return jsonify({'svgResult': f'{svg_result}', 'result1': f'{result1}', 'result2': f'{result2}'})
+
+    initial_dfa = create_automata(data)
+    result1 = initial_dfa.accepts_input(strings)
+    svg_result1 = draw_path(initial_dfa)
+
+    minimized_dfa = nomor_3_run(initial_dfa)
+    result2 = minimized_dfa.accepts_input(strings)
+    svg_result2 = draw_path(minimized_dfa)
+
+    return jsonify({'svgResult1': f'{svg_result1}', 'svgResult2': f'{svg_result2}', 'result1': f'{result1}', 'result2': f'{result2}'})
 
 
 @app.route('/nomor_4', methods=['POST'])
@@ -70,8 +76,12 @@ def nomor_5():
     else:
         automata = create_automata(data)
         strings = data['strings']
-        result = automata.accepts_input(strings)
-        svg_result = make_svg(automata)
+        result= automata.accepts_input(strings)
+        svg_result = ""
+        if isinstance(automata, DFA): 
+            svg_result = draw_path(automata)
+        else:
+            svg_result = make_svg(automata)
         return jsonify({'svgResult': svg_result, 'result': f'{result}'})
 
 

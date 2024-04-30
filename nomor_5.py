@@ -10,6 +10,7 @@ class DFA:
         self.transitions = transitions
         self.initial_state = initial_state
         self.final_states = final_states
+        self.path = [self.initial_state]
 
     def accepts_input(self, input_string):
         current_state = self.initial_state
@@ -20,6 +21,7 @@ class DFA:
             current_state = self.transitions[current_state].get(symbol)
             if current_state is None:
                 return False
+            self.path.append(current_state)
         return current_state in self.final_states
 
     def copy(self):
@@ -190,6 +192,48 @@ def make_svg(automata):
         graph.node('')
         graph.edge('', automata.initial_state, label="start")
 
+    svg_data = graph.pipe(format='svg').decode("utf-8")
+    soup = BeautifulSoup(svg_data, 'html.parser')
+    for tag in soup.find_all():
+        tag.attrs = {key.split(':')[-1]: value for key, value in tag.attrs.items()}
+        tag.name = tag.name.split(':')[-1]
+    cleaned_svg = str(soup)
+    return cleaned_svg
+
+
+def draw_path(automata):
+    graph = Digraph(format='svg')
+
+    for state in automata.states:
+        if state in automata.final_states:
+            graph.node(state, shape='doublecircle')
+        else:
+            graph.node(state)
+
+    for from_state, transitions in automata.transitions.items():
+        for symbol, to_states in transitions.items():
+            if symbol == "":
+                symbol = "ε"
+            if isinstance(automata, DFA):
+                graph.edge(from_state, to_states, label=symbol)
+            else:
+                for to_state in to_states:
+                    graph.edge(from_state, to_state, label=symbol)
+
+    if automata.initial_state:
+        graph.attr('node', shape='none')
+        graph.node('')
+        graph.edge('', automata.initial_state, label="start")
+
+    prevValue = ""
+    for i, value in enumerate(automata.path):
+        if i == 0:
+            prevValue = value
+            continue
+        langkahKe = "[" + str(i) + "]"
+        graph.edge(prevValue, value, label=langkahKe, color='green', fontcolor='blue')
+        prevValue = value
+    
     svg_data = graph.pipe(format='svg').decode("utf-8")
     soup = BeautifulSoup(svg_data, 'html.parser')
     for tag in soup.find_all():
