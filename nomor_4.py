@@ -1,4 +1,3 @@
-
 from nomor_5 import create_automata
 
 def equivalent(dfa1, dfa2):

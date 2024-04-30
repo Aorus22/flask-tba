@@ -35,9 +35,12 @@ class NFA:
         self.transitions = transitions
         self.initial_state = initial_state
         self.final_states = final_states
+        self.path_mentah = []
+        self.path = []
 
     def accepts_input(self, input_string):
         current_states = {self.initial_state}
+        self.path = []
         index = 0
         while index < len(input_string):
             for length in range(1, len(input_string) - index + 1):
@@ -45,10 +48,13 @@ class NFA:
 
                 if symbol in self.input_symbols:
                     index += length
-                    next_states = set()
+                    next_states = {}
                     for state in current_states:
-                        next_states.update(self.transitions[state].get(symbol, set()))
-                    current_states = next_states
+                        next_states[state] = self.transitions[state].get(symbol, set())
+                    current_states = set()
+                    for states_set in next_states.values():
+                        current_states.update(states_set)
+                    self.path_mentah.append(next_states)
                     break
             else:
                 return False
@@ -56,7 +62,42 @@ class NFA:
             if not current_states:
                 return False
 
+        print(self.path_mentah)
+        self.track_path()
         return any(state in self.final_states for state in current_states)
+
+    def track_path(self):
+        def cek_accepting(cek_dict, finish_set):
+            selected_child = ""
+            for child_set in cek_dict.values():
+                for child in child_set:
+                    if child in finish_set:
+                        selected_child = child
+            if selected_child == "":
+                for children_set in cek_dict.values():
+                    children_list = list(children_set)
+                    if not children_list:
+                        continue
+                    selected_child = children_list[0]
+                    break
+            return selected_child
+
+        def cari_key(d, nilai):
+            for k, v in d.items():
+                if nilai in v:
+                    return k
+            return None
+
+        last_path = self.path_mentah[-1]
+        current = cek_accepting(last_path, self.final_states)
+        self.path.append(current)
+        for element in reversed(self.path_mentah):
+            current = cari_key(element, current)
+            self.path.append(current)
+
+        self.path = self.path[::-1]
+        print(self.path)
+        return self.path
 
 
 class ENFA:
@@ -99,7 +140,7 @@ class ENFA:
                 if symbol in self.input_symbols:
                     index += length
                     next_states = set()
-                    for state in current_states:
+                    for _ in current_states:
                         next_states.update(self.transition_with_epsilon(current_states, symbol))
                         current_states = next_states
                         break
@@ -161,10 +202,10 @@ def create_automata(data):
                     nfa_transitions[from_state][symbol] = set(next_states)
 
         automata = ENFA(states=states,
-                       input_symbols=input_symbols,
-                       transitions=nfa_transitions,
-                       initial_state=initial_state,
-                       final_states=final_states)
+                        input_symbols=input_symbols,
+                        transitions=nfa_transitions,
+                        initial_state=initial_state,
+                        final_states=final_states)
         return automata
 
 
@@ -225,15 +266,15 @@ def draw_path(automata):
         graph.node('')
         graph.edge('', automata.initial_state, label="start")
 
-    prevValue = ""
+    prev_value = ""
     for i, value in enumerate(automata.path):
         if i == 0:
-            prevValue = value
+            prev_value = value
             continue
-        langkahKe = "[" + str(i) + "]"
-        graph.edge(prevValue, value, label=langkahKe, color='green', fontcolor='blue')
-        prevValue = value
-    
+        langkah_ke = "[" + str(i) + "]"
+        graph.edge(prev_value, value, label=langkah_ke, color='green', fontcolor='blue')
+        prev_value = value
+
     svg_data = graph.pipe(format='svg').decode("utf-8")
     soup = BeautifulSoup(svg_data, 'html.parser')
     for tag in soup.find_all():

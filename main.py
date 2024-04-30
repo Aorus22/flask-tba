@@ -2,7 +2,7 @@ from nomor_1 import nomor_1_run
 from nomor_2 import nomor_2_run
 from nomor_3 import nomor_3_run
 from nomor_4 import nomor_4_run
-from nomor_5 import create_automata, make_svg, draw_path, DFA
+from nomor_5 import create_automata, make_svg, draw_path, DFA, ENFA
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import re
@@ -78,10 +78,10 @@ def nomor_5():
         strings = data['strings']
         result= automata.accepts_input(strings)
         svg_result = ""
-        if isinstance(automata, DFA): 
-            svg_result = draw_path(automata)
-        else:
+        if isinstance(automata, ENFA):
             svg_result = make_svg(automata)
+        else:
+            svg_result = draw_path(automata)
         return jsonify({'svgResult': svg_result, 'result': f'{result}'})
 
 
