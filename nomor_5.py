@@ -56,8 +56,8 @@ class NFA:
                         current_states.update(states_set)
                     self.path_mentah.append(next_states)
                     break
-            else:
-                return False
+                else:
+                    return False
 
             if not current_states:
                 return False
@@ -107,6 +107,8 @@ class ENFA:
         self.transitions = transitions
         self.initial_state = initial_state
         self.final_states = final_states
+        self.path_mentah = []
+        self.path = []
 
     def epsilon_closure(self, states):
         closure = set(states)
@@ -139,18 +141,59 @@ class ENFA:
 
                 if symbol in self.input_symbols:
                     index += length
-                    next_states = set()
-                    for state in current_states:
-                        next_states.update(self.transition_with_epsilon({state}, symbol))
-                    current_states = next_states
 
-                    current_states_with_epsilon = set()
+                    next_states = {}
                     for state in current_states:
-                        current_states_with_epsilon.update(self.epsilon_closure({state}))
-                    current_states = current_states_with_epsilon
+                        transitions = self.transitions[state].get(symbol, set())
+                        transitions_with_epsilon = set()
+                        for transition_state in transitions:
+                            transitions_with_epsilon.update(self.epsilon_closure({transition_state}))
+                        next_states[state] = transitions_with_epsilon
+                    current_states = set().union(*next_states.values())
 
+                    self.path_mentah.append(next_states)
                     break
+                else:
+                    return False
+
+            if not current_states:
+                return False
+            
+        self.track_path()
         return any(state in self.final_states for state in current_states)
+
+    def track_path(self):
+        def cek_accepting(cek_dict, finish_set):
+            selected_child = ""
+            for child_set in cek_dict.values():
+                for child in child_set:
+                    if child in finish_set:
+                        selected_child = child
+            if selected_child == "":
+                for children_set in cek_dict.values():
+                    children_list = list(children_set)
+                    if not children_list:
+                        continue
+                    selected_child = children_list[0]
+                    break
+            return selected_child
+
+        def cari_key(d, nilai):
+            for k, v in d.items():
+                if nilai in v:
+                    return k
+            return None
+
+        last_path = self.path_mentah[-1]
+        current = cek_accepting(last_path, self.final_states)
+        self.path.append(current)
+        for element in reversed(self.path_mentah):
+            current = cari_key(element, current)
+            self.path.append(current)
+
+        self.path = self.path[::-1]
+        print(self.path)
+        return self.path
 
 
 def create_automata(data):

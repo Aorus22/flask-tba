@@ -77,11 +77,11 @@ def nomor_5():
         automata = create_automata(data)
         strings = data['strings']
         result= automata.accepts_input(strings)
-        svg_result = ""
-        if isinstance(automata, ENFA):
-            svg_result = make_svg(automata)
-        else:
-            svg_result = draw_path(automata)
+        svg_result = draw_path(automata)
+        # if isinstance(automata, ENFA):
+        #     svg_result = make_svg(automata)
+        # else:
+        #     svg_result = draw_path(automata)
         return jsonify({'svgResult': svg_result, 'result': f'{result}'})
 
 
